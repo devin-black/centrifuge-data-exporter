@@ -1,0 +1,9 @@
+# general
+.env
+results/
+.DS_Store
+
+# other
+.vscode/
+venv/
+auth.json
