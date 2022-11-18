@@ -2,7 +2,7 @@
 #Check if missing any newish possible queries
 #Format day timestamps to date in format.py
 #Figure out what to do with queries with more than 5k results (5k current maximum pagination
-#Auto re-try on 524
+#fix 524 error handling?
 
 import time
 import os
@@ -23,16 +23,19 @@ def main():
     start = time.time()
 
     #Load environment settings
-    load_dotenv()
-    graph_url = os.getenv('SUBGRAPH_URL')
-    etherscan_api_key = os.getenv('ETHERSCAN_API_KEY')
-    gsheets_auth_path = os.getenv('GSHEETS_AUTH_PATH')
-    gsheets_file = os.getenv('GSHEETS_FILE')
-    
-    #Unfortunately hacky way of converting ENV file bools (strings) to proper bools
-    export_csv = json.loads(os.getenv('EXPORT_CSV').lower())
-    export_gsheets = json.loads(os.getenv('EXPORT_GSHEETS').lower())
-    test = json.loads(os.getenv('TEST').lower())
+    try:
+        load_dotenv()
+        graph_url = os.getenv('SUBGRAPH_URL')
+        etherscan_api_key = os.getenv('ETHERSCAN_API_KEY')
+        gsheets_auth_path = os.getenv('GSHEETS_AUTH_PATH')
+        gsheets_file = os.getenv('GSHEETS_FILE')
+        
+        #Unfortunately hacky way of converting ENV file bools (strings) to proper bools
+        export_csv = json.loads(os.getenv('EXPORT_CSV').lower())
+        export_gsheets = json.loads(os.getenv('EXPORT_GSHEETS').lower())
+        test = json.loads(os.getenv('TEST').lower())
+    except:
+        print('Error loading environment variables. Is your .env file set up properly?')
 
     #Hardcoded settings
     skip_limit = 5000 #Subgraph limits skip to 5000. TODO - how to get around this?
@@ -76,7 +79,6 @@ def main():
             first = 100
             skip = 0
         else:
-            #TODO Using else statement here executes no matter what i equals - why?
             first = 1000
             skip = 0
 
@@ -90,8 +92,8 @@ def main():
                 result_raw = endpoint(query, {'block': block, 'first': first, 'skip': skip})
                 result_temp = pd.DataFrame(result_raw['data'][i])
             except:
-                if i == 'tokenBalances': #Catches two poisoned entries in tokenBalances
-                    print(f"Warning: special tokenBalances error! Skipping this entry. and moving on: {result_raw}")
+                if i == 'tokenBalances': #Catches poisoned entries in tokenBalances
+                    print(f"tokenBalances bad data — skipping!")
                 else: #Other error
                     try: #Try to get tidy error message if Graphql gives it
                         error_msg = result_raw['errors'][0]['message']
