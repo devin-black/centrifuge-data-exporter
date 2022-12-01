@@ -75,29 +75,32 @@ query ($block: Int!, $first: Int!, $skip: Int!)
 'loans': '''
 query ($block: Int!, $first: Int!, $skip: Int!)
 {
-  loans(first: $first, skip: $skip, block:{number: $block})
+  pools
   {
-    id
-    pool {
+    loans(first: $first, skip: $skip, block:{number: $block})
+    {
       id
+      pool {
+        id
+      }
+      index
+      nftId
+      nftRegistry
+      owner
+      opened
+      closed
+      debt
+      interestRatePerSecond
+      ceiling
+      threshold
+      borrowsCount
+      borrowsAggregatedAmount
+      repaysCount
+      repaysAggregatedAmount
+      maturityDate
+      financingDate
+      riskGroup
     }
-    index
-    nftId
-    nftRegistry
-    owner
-    opened
-    closed
-    debt
-    interestRatePerSecond
-    ceiling
-    threshold
-    borrowsCount
-    borrowsAggregatedAmount
-    repaysCount
-    repaysAggregatedAmount
-    maturityDate
-    financingDate
-    riskGroup
   }
 }
 ''',

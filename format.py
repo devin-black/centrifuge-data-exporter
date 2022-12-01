@@ -1,3 +1,5 @@
+#TODO — can likely format decimals by automatically figuring out if it's 18 or 27 places, as those are the only 2 options
+
 import os
 
 from dotenv import load_dotenv
@@ -12,6 +14,7 @@ format_decimals = bool(os.getenv('FORMAT_DECIMALS'))
 
 #Restore decimal places to columns in dataframe. Usually to 18 or 27 places for Tinlake. 
 #Takes list of dataframe column names.
+
 def format_decimal(df, columns, places):
     if format_decimals:
         for column in columns:

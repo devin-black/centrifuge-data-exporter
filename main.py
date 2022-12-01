@@ -1,8 +1,9 @@
 #TODO
 #Check if missing any newish possible queries
 #Format day timestamps to date in format.py
-#Figure out what to do with queries with more than 5k results (5k current maximum pagination
-#fix 524 error handling?
+#Figure out what to do with queries with more than 5k results (5k current maximum pagination)
+#Better error handling overall
+#Better tokenbalances algo
 
 import time
 import os
@@ -12,9 +13,9 @@ import gspread
 import pandas as pd
 from gspread_dataframe import set_with_dataframe
 from sgqlc.endpoint.http import HTTPEndpoint
-from dotenv import load_dotenv
 import traceback
-from etherscan import Etherscan  # https://github.com/pcko1/etherscan-python
+from dotenv import load_dotenv
+from etherscan import Etherscan #https://github.com/pcko1/etherscan-python
 
 import queries
 import format
@@ -34,33 +35,42 @@ def main():
         export_csv = json.loads(os.getenv('EXPORT_CSV').lower())
         export_gsheets = json.loads(os.getenv('EXPORT_GSHEETS').lower())
         test = json.loads(os.getenv('TEST').lower())
-    except:
-        print('Error loading environment variables. Is your .env file set up properly?')
+        use_custom_block = json.loads(os.getenv('USE_CUSTOM_BLOCK').lower())
+        if use_custom_block:
+            custom_block = int(os.getenv('CUSTOM_BLOCK'))
+    except Exception as e:
+        print(f"No valid .env file — using default settings. (Error: {e}")
+        graph_url = "https://api.thegraph.com/subgraphs/name/centrifuge/tinlake"
+        etherscan_api_key = False
+        gsheets_auth_path = None
+        gsheets_file = None
+        export_csv = True
+        export_gsheets = False
+        test = True
+        use_custom_block = False
 
-    #Hardcoded settings
-    skip_limit = 5000 #Subgraph limits skip to 5000. TODO - how to get around this?
     endpoint = HTTPEndpoint(url=graph_url)
+    skip_limit = 5000 #Subgraph limits skip to 5000. TODO - can we get around this?
 
     #Get block number for latest subgraph synced block, compare with Etherscan live block (if API key provided)
     block = int(endpoint(queries.last_synced_block_query)['data']['_meta']['block']['number'])
+    print(f"Subgraph block:  {block}")
 
     if etherscan_api_key:
-        current_time = round(time.time())
-        eth = Etherscan(etherscan_api_key)
-        etherscan_block = int(eth.get_block_number_by_timestamp(timestamp=current_time, closest="before"))
+        try:
+            eth = Etherscan(etherscan_api_key)
+            etherscan_block = int(eth.get_block_number_by_timestamp(timestamp=round(time.time()), closest="before"))
+            print(f"Etherscan block: {etherscan_block}")
+            print(f"Importing data based on subgraph block: {block}, which is {etherscan_block - block} blocks behind live block.")
+            
+            if etherscan_block - block >= 100:
+                print(f"Warning: Live (Etherscan) block is {etherscan_block - block} blocks ahead of subgraph block. Data may be incomplete.")
 
-        if etherscan_block - block >= 100:
-            print(f"Warning: Live (Etherscan) block is {etherscan_block - block} blocks ahead of subgraph block. Data may be incomplete.")
-
-        print(f"Subgraph block:  {block}")
-        print(f"Etherscan block: {etherscan_block}")
-        print(f"Importing data based on subgraph block: {block}, which is {etherscan_block - block} blocks behind live block.")
- 
-    else:
-        print("No valid Etherscan API key provided. Skipping Etherscan block check.")
-        print(f"Importing data based on subgraph block: {block}")
-
-    #Loop through dict in queries.py of all queries. Query and format.
+        except Exception as e:
+                print(f"Warning: used Etherscan API key, but it's invalid or not working: {e}")
+                print(f"Importing data based on subgraph block: {block}")
+    
+    #Time to query!
     all_results = {}
     iferrors = False
     retries = 0
@@ -69,14 +79,11 @@ def main():
         query = queries.all_queries[i]
         result = pd.DataFrame()
 
+        #Choose how to paginate
         if i == 'tokenBalances': 
             #tokenBalances has one single entry that causes a graphql error, so paginate differently
             #TODO: better algo for this (query 1000, 100, 10, 1 at a time?)
             first = 1
-            skip = 0
-        elif i == 'loans': 
-            #loans times out on larger queries sometimes, so take it slower
-            first = 100
             skip = 0
         else:
             first = 1000
@@ -89,35 +96,29 @@ def main():
                 else:
                     print(f"Querying:   {i} #{skip}–{skip + first}…", end="\r")
 
-                result_raw = endpoint(query, {'block': block, 'first': first, 'skip': skip})
-                result_temp = pd.DataFrame(result_raw['data'][i])
-            except:
+                if use_custom_block:
+                    result_raw = endpoint(query, {'block': custom_block, 'first': first, 'skip': skip})
+                else:
+                    result_raw = endpoint(query, {'block': block, 'first': first, 'skip': skip})
+
+                if i == 'loans': #Workaround for loans query — faster to pull via pools
+                    #result_temp = pd.DataFrame(result_raw['data'])
+                    result_temp = pd.DataFrame(result_raw['data']['pools'][0]['loans'])
+                else:
+                    result_temp = pd.DataFrame(result_raw['data'][i])
+            
+            except Exception as e:
                 if i == 'tokenBalances': #Catches poisoned entries in tokenBalances
                     print(f"tokenBalances bad data — skipping!")
-                else: #Other error
-                    try: #Try to get tidy error message if Graphql gives it
-                        error_msg = result_raw['errors'][0]['message']
-                        print(f"Graphql error: {error_msg}")
-                        if error_msg == 'HTTP Error 524' and retries < 3: #need to correct error msg probs
-                            print(f"Retrying in 10 seconds… (Try #{retries}") 
-                            time.sleep(10)
-                            retries += 1
-                            continue
-                        elif error_msg == 'HTTP Error 524' and retries > 3:
-                            print(f"Still timing out. Aborting {i}.")
-                            iferrors = True
-                            break
-                    except: #no pretty errors? too bad
-                        print(f"Other error: {result_raw}")
-                        traceback.print_exc()
-                        iferrors = True
-                        break
+                else:
+                    print(f"Error: {e}") 
+                    iferrors = True
 
             if result_temp.empty or skip >= skip_limit: #Done fetching results
                 print("                                              ", end="\r")
                 print(f"Querying:   {i} — Done.", end="\r")
                 break 
-            else: #Add fetched paginated data to full result
+            else: #Add fetched paginated data to full result and increment skip
                 result = pd.concat([result, result_temp], axis=0, join='outer')
                 if skip < skip_limit:
                     skip += first
@@ -166,6 +167,10 @@ def main():
                 r, c = all_results[result].shape #get num of rows and columns from dataframe
                 sh.add_worksheet(title = result, rows = r, cols = c)
 
+            #Temp fix to not break existing formulas
+            #Append two empty columns to left side of dataframe X
+            if result != 'poolInvestors':
+                all_results[result] = pd.concat([pd.DataFrame(columns=['','']), all_results[result]], axis=1, join='outer')
             set_with_dataframe(sh.worksheet(result), all_results[result])
             print(f"Imported {result} to Google Sheets")
 
