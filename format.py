@@ -1,5 +1,3 @@
-#TODO — can likely format decimals by automatically figuring out if it's 18 or 27 places, as those are the only 2 options
-
 import os
 
 from dotenv import load_dotenv

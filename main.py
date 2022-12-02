@@ -1,10 +1,3 @@
-#TODO
-#Check if missing any newish possible queries
-#Format day timestamps to date in format.py
-#Figure out what to do with queries with more than 5k results (5k current maximum pagination)
-#Better error handling overall
-#Better tokenbalances algo
-
 import time
 import os
 import json
