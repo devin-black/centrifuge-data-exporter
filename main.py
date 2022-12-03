@@ -32,7 +32,7 @@ def main():
         if use_custom_block:
             custom_block = int(os.getenv('CUSTOM_BLOCK'))
     except Exception as e:
-        print(f"No valid .env file — using default settings. (Error: {e}")
+        print(f"No valid .env file — using default settings.")
         graph_url = "https://api.thegraph.com/subgraphs/name/centrifuge/tinlake"
         etherscan_api_key = False
         gsheets_auth_path = None
@@ -141,8 +141,10 @@ def main():
 
     #Save as CSV
     if export_csv:
+        if not os.path.exists('results'):
+            os.mkdir('results')
         for result in all_results:
-            all_results[result].to_csv(f'/Users/devinblack/documents/github/tinlake-data-v3/results/{result}.csv')
+            all_results[result].to_csv(f'results/{result}.csv')
         
         print("CSV export complete.")
 
