@@ -162,12 +162,14 @@ def main():
                 r, c = all_results[result].shape #get num of rows and columns from dataframe
                 sh.add_worksheet(title = result, rows = r, cols = c)
 
-            #Temp fix to not break existing formulas
+            #Temp-ish fix to not break existing formulas in existing sheets
             #Append two empty columns to left side of dataframe X
             if result != 'poolInvestors':
                 all_results[result] = pd.concat([pd.DataFrame(columns=['','']), all_results[result]], axis=1, join='outer')
+            
             set_with_dataframe(sh.worksheet(result), all_results[result])
             print(f"Imported {result} to Google Sheets")
+            time.sleep(0.5) # Sleep to avoid hitting rate limit
 
         print("Google Sheets export complete.")
 

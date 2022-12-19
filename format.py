@@ -11,6 +11,7 @@ format_decimals = bool(os.getenv('FORMAT_DECIMALS'))
 #Makes data more human readable.
 
 #Restore decimal places to columns in dataframe. Usually to 18 or 27 places for Tinlake. 
+    #Could automate this, but I like the specific control here.
 #Takes list of dataframe column names.
 
 def format_decimal(df, columns, places):
