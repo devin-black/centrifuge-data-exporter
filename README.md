@@ -75,5 +75,4 @@ In your .env settings, you can:
 - For daily data results, format unix timestamps to be human readable.
 - Better error handling overall
 - Better `tokenBalances` algo
-- format.py can likely auto-detect if large ints should be formatted with 18 or 27 decimal place precision.
 - Implement Subquery to do the same for pools on Centrifuge Chain!
