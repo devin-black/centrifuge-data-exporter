@@ -1,181 +1,177 @@
 import os
 
-from dotenv import load_dotenv
 import pandas as pd
+from dotenv import load_dotenv
 
-#Load settings
+# Load settings
 load_dotenv()
-format_decimals = bool(os.getenv('FORMAT_DECIMALS'))
+format_decimals = bool(os.getenv("FORMAT_DECIMALS"))
 
-#Functions that will format subgraph data (once in dataframe form)
-#Makes data more human readable.
+# Functions that will format subgraph data (once in dataframe form)
+# Makes data more human readable.
 
-#Restore decimal places to columns in dataframe. Usually to 18 or 27 places for Tinlake. 
-    #Could automate this, but I like the specific control here.
-#Takes list of dataframe column names.
+# Restore decimal places to columns in dataframe. Usually to 18 or 27 places for Tinlake.
+# Could automate this, but I like the specific control here.
+# Takes list of dataframe column names.
+
 
 def format_decimal(df, columns, places):
     if format_decimals:
         for column in columns:
             df[column] = df[column].astype(float)
-            df[column] = df[column].apply(lambda x: x/10**places)
+            df[column] = df[column].apply(lambda x: x / 10**places)
         return df
 
-#Per-query data formatting logic
+
+# Per-query data formatting logic
 def formatter(df, query):
-    if query == 'pools':
+    if query == "pools":
         columns_18 = [
-            'totalDebt',
-            'totalBorrowsAggregatedAmount',
-            'totalRepaysAggregatedAmount',
-            'seniorDebt',
-            'maxReserve',
-            'reserve',
-            'assetValue'
+            "totalDebt",
+            "totalBorrowsAggregatedAmount",
+            "totalRepaysAggregatedAmount",
+            "seniorDebt",
+            "maxReserve",
+            "reserve",
+            "assetValue",
         ]
         columns_27 = [
-            'weightedInterestRate',
-            'seniorInterestRate',
-            'minJuniorRatio',
-            'maxJuniorRatio',
-            'currentJuniorRatio',
-            'seniorTokenPrice',
-            'juniorTokenPrice',
-            'juniorYield30Days',
-            'seniorYield30Days',
-            'juniorYield90Days',
-            'seniorYield90Days'
+            "weightedInterestRate",
+            "seniorInterestRate",
+            "minJuniorRatio",
+            "maxJuniorRatio",
+            "currentJuniorRatio",
+            "seniorTokenPrice",
+            "juniorTokenPrice",
+            "juniorYield30Days",
+            "seniorYield30Days",
+            "juniorYield90Days",
+            "seniorYield90Days",
         ]
         format_decimal(df, columns_18, 18)
         format_decimal(df, columns_27, 27)
         return df
 
-    if query == 'dailyPoolDatas':
+    if query == "dailyPoolDatas":
         columns_18 = [
-            'reserve',
-            'totalDebt',
-            'assetValue',
-            'seniorDebt',
-            'currentJuniorRatio'
+            "reserve",
+            "totalDebt",
+            "assetValue",
+            "seniorDebt",
+            "currentJuniorRatio",
         ]
         columns_27 = [
-            'seniorTokenPrice',
-            'juniorTokenPrice',
-            'juniorYield30Days',
-            'seniorYield30Days',
-            'juniorYield90Days',
-            'seniorYield90Days'
+            "seniorTokenPrice",
+            "juniorTokenPrice",
+            "juniorYield30Days",
+            "seniorYield30Days",
+            "juniorYield90Days",
+            "seniorYield90Days",
         ]
         format_decimal(df, columns_18, 18)
         format_decimal(df, columns_27, 27)
-        df['day'] = [d.get('id') for d in df.day]
-        df['pool'] = [d.get('id') for d in df.pool]
+        df["day"] = [d.get("id") for d in df.day]
+        df["pool"] = [d.get("id") for d in df.pool]
         return df
-        
-    if query == 'loans':
+
+    if query == "loans":
         columns_18 = [
-            'borrowsAggregatedAmount',
-            'ceiling',
-            'debt',
-            'repaysAggregatedAmount',
-            'threshold'
+            "borrowsAggregatedAmount",
+            "ceiling",
+            "debt",
+            "repaysAggregatedAmount",
+            "threshold",
         ]
-        columns_27 = [
-            'interestRatePerSecond'
-        ]
+        columns_27 = ["interestRatePerSecond"]
         format_decimal(df, columns_18, 18)
         format_decimal(df, columns_27, 27)
-        df['pool'] = [d.get('id') for d in df.pool]
+        df["pool"] = [d.get("id") for d in df.pool]
         return df
 
-    if query == 'erc20Transfers':
-        format_decimal(df, ['amount'], 18)
-        df['token'] = [d.get('id') for d in df.token]
-        df['pool'] = [d.get('id') for d in df.pool]
+    if query == "erc20Transfers":
+        format_decimal(df, ["amount"], 18)
+        df["token"] = [d.get("id") for d in df.token]
+        df["pool"] = [d.get("id") for d in df.pool]
         return df
 
-    if query == 'tokens':
-        format_decimal(df,['price'], 27)
+    if query == "tokens":
+        format_decimal(df, ["price"], 27)
         return df
 
-    if query == 'tokenBalances':
+    if query == "tokenBalances":
         columns_18 = [
-            'balanceAmount',
-            'balanceValue',
-            'totalAmount',
-            'totalValue',
-            'pendingSupplyCurrency',
-            'supplyAmount',
-            'supplyValue',
-            'pendingRedeemToken',
-            'redeemAmount'
+            "balanceAmount",
+            "balanceValue",
+            "totalAmount",
+            "totalValue",
+            "pendingSupplyCurrency",
+            "supplyAmount",
+            "supplyValue",
+            "pendingRedeemToken",
+            "redeemAmount",
         ]
         format_decimal(df, columns_18, 18)
-        df['owner'] = [d.get('id') for d in df.owner]
-        df['token'] = [d.get('id') for d in df.token]
+        df["owner"] = [d.get("id") for d in df.owner]
+        df["token"] = [d.get("id") for d in df.token]
         return df
 
-    if query == 'dailyInvestorTokenBalances':
+    if query == "dailyInvestorTokenBalances":
         columns_18 = [
-            'seniorTokenAmount',
-            'seniorTokenValue',
-            'seniorSupplyAmount',
-            'seniorPendingSupplyCurrency',
-            'juniorTokenAmount',
-            'juniorTokenValue',
-            'juniorSupplyAmount',
-            'juniorPendingSupplyCurrency',
+            "seniorTokenAmount",
+            "seniorTokenValue",
+            "seniorSupplyAmount",
+            "seniorPendingSupplyCurrency",
+            "juniorTokenAmount",
+            "juniorTokenValue",
+            "juniorSupplyAmount",
+            "juniorPendingSupplyCurrency",
         ]
         format_decimal(df, columns_18, 18)
-        df['account'] = [d.get('id') for d in df.account]
-        df['day'] = [d.get('id') for d in df.day]
-        df['pool'] = [d.get('id') for d in df.pool]
+        df["account"] = [d.get("id") for d in df.account]
+        df["day"] = [d.get("id") for d in df.day]
+        df["pool"] = [d.get("id") for d in df.pool]
         return df
 
-    if query == 'rewardDayTotals':
+    if query == "rewardDayTotals":
         columns_18 = [
-            'toDateAORewardAggregateValue',
-            'toDateRewardAggregateValue',
-            'toDateAggregateValue',
-            'todayAOReward',
-            'todayReward',
-            'todayValue'
-        ]
-        format_decimal(df, columns_18, 18)
-        return df
-
-    if query == 'rewardBalances':
-        columns_18 = [
-            'linkableRewards',
-            'totalRewards'
+            "toDateAORewardAggregateValue",
+            "toDateRewardAggregateValue",
+            "toDateAggregateValue",
+            "todayAOReward",
+            "todayReward",
+            "todayValue",
         ]
         format_decimal(df, columns_18, 18)
         return df
 
-    if query == 'aorewardBalances':
-        columns_18 = [
-            'linkableRewards',
-            'totalRewards'
-        ]
+    if query == "rewardBalances":
+        columns_18 = ["linkableRewards", "totalRewards"]
         format_decimal(df, columns_18, 18)
         return df
 
-    if query == 'rewardLinks':
-        format_decimal(df, ['rewardsAccumulated'], 18)
+    if query == "aorewardBalances":
+        columns_18 = ["linkableRewards", "totalRewards"]
+        format_decimal(df, columns_18, 18)
         return df
-    
-    #poolInvestors query is done differently. Returns a list of addresses per pool ID
-    #To make spreadsheet-friendly: we pivot so row 1 in a column is pool ID, subsequent rows are addresses in that pool
-    if query == 'poolInvestors': 
+
+    if query == "rewardLinks":
+        format_decimal(df, ["rewardsAccumulated"], 18)
+        return df
+
+    # poolInvestors query is done differently. Returns a list of addresses per pool ID
+    # To make spreadsheet-friendly: we pivot so row 1 in a column is pool ID, subsequent rows are addresses in that pool
+    if query == "poolInvestors":
         columns_list = []
         for index, row in df.iterrows():
-            column = [row['id']] #Extract pool ID of this row and make it first entry in column list
-            addresses = row[1] #Extract addresses of this row
-            column = column + addresses #Add addresses under column in list
-            columns_list.append(column) #Add this to list of columns
-        
-        df = pd.DataFrame(columns_list) #Turn list of columns into a dataframe
-        df = df.T #Pivot.
+            column = [
+                row["id"]
+            ]  # Extract pool ID of this row and make it first entry in column list
+            addresses = row[1]  # Extract addresses of this row
+            column = column + addresses  # Add addresses under column in list
+            columns_list.append(column)  # Add this to list of columns
+
+        df = pd.DataFrame(columns_list)  # Turn list of columns into a dataframe
+        df = df.T  # Pivot.
         return df
 
     else:

@@ -1,42 +1,16 @@
-import logging
 import os
 import sys
 import time
 
 import gspread
 import pandas as pd
-from dotenv import load_dotenv
 from etherscan import Etherscan  # https://github.com/pcko1/etherscan-python
 from gspread_dataframe import set_with_dataframe
 from sgqlc.endpoint.http import HTTPEndpoint
 
 import format_data
 import queries
-
-logging.basicConfig(level=logging.INFO)
-
-
-def load_env_vars() -> str:
-    etherscan_api_key = os.environ.get("ETHERSCAN_API_KEY")
-    gsheets_auth_path = os.environ.get(
-        "GSHEETS_AUTH_PATH"
-    )  # TODO can whole auth be passed as env var?
-    gsheets_file = os.environ.get("GSHEETS_FILE")
-
-    if not all([etherscan_api_key, gsheets_auth_path, gsheets_file]):
-        logging.info("No OS environment variables found. Trying with .env file")
-        load_dotenv()
-        etherscan_api_key = os.environ.get("ETHERSCAN_API_KEY")
-        gsheets_auth_path = os.environ.get("GSHEETS_AUTH_PATH")
-        gsheets_file = os.environ.get("GSHEETS_FILE")
-
-    if not all([etherscan_api_key, gsheets_auth_path, gsheets_file]):
-        logging.error("No valid .env file — using default settings.")
-        etherscan_api_key = False
-        gsheets_auth_path = False
-        gsheets_file = False
-
-    return etherscan_api_key, gsheets_auth_path, gsheets_file
+import utils
 
 
 def get_subgraph_block(etherscan_api_key: str, endpoint: HTTPEndpoint) -> int:
@@ -48,12 +22,10 @@ def get_subgraph_block(etherscan_api_key: str, endpoint: HTTPEndpoint) -> int:
                 "number"
             ]
         )
-        msg = f"Subgraph block: {block}"
-        logging.info(msg)
+        print(f"Subgraph block: {block}")
     except TypeError:
         msg = endpoint(queries.all_queries["lastSyncedBlock"])
-        msg = msg["errors"][0]["message"]
-        logging.error(msg)
+        print(msg["errors"][0]["message"])
         sys.exit()
 
     if etherscan_api_key:
@@ -88,7 +60,7 @@ def main():
     # Settings
     EXPORT_CSV = True
     EXPORT_GSHEETS = True
-    USE_CUSTOM_BLOCK = False
+    USE_CUSTOM_BLOCK = False  # TODO - make command line vars?
     CUSTOM_BLOCK = 0
     TEST = True
     GRAPH_URL = "https://graph.centrifuge.io/tinlake"
@@ -98,7 +70,7 @@ def main():
 
     endpoint = HTTPEndpoint(url=GRAPH_URL)
 
-    etherscan_api_key, gsheets_auth_path, gsheets_file = load_env_vars()
+    etherscan_api_key, gsheet_credentials, gsheet_file = utils.load_env_vars()
 
     if USE_CUSTOM_BLOCK:
         print(f"Using custom block: {CUSTOM_BLOCK}")
@@ -162,8 +134,7 @@ def main():
 
         # Format results and add to all_results dict
         result = format_data.formatter(result, query_name)
-        msg = f"\rQuerying:   {query_name} — Done. Formatting successful."
-        logging.info(msg)
+        print(f"\rQuerying:   {query_name} — Done. Formatting successful.")
 
         all_results[query_name] = result
 
@@ -189,10 +160,8 @@ def main():
         # Export to google sheets
         if EXPORT_GSHEETS:
             # Access google sheet
-            gc = gspread.service_account(
-                filename=gsheets_auth_path
-            )  # TODO use env var instead of json?
-            sh = gc.open_by_key(gsheets_file)
+            gc = gspread.service_account_from_dict(gsheet_credentials)
+            sh = gc.open_by_key(gsheet_file)
 
             try:
                 sh.worksheet(result).clear()

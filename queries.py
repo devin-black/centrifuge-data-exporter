@@ -1,6 +1,9 @@
-# Dict of queries used to import data from the subgraph.
-# Tinlake subgraph schema can be found here: https://github.com/centrifuge/tinlake-subgraph/blob/main/schema.graphql
-# Can likely automate this, but hardcoded queries help to avoid breaking data imports if subgraph is updated
+"""
+Dict of queries used to import data from the subgraph.
+Tinlake subgraph schema can be found here:
+https://github.com/centrifuge/tinlake-subgraph/blob/main/schema.graphql
+Can likely automate this, but hardcoded queries avoid unexpected breaks if subgraph updated
+"""
 
 all_queries = {
     "lastSyncedBlock": """
