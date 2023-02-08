@@ -1,58 +1,18 @@
+""" Main script to query, format, and export data from Tinlake
+to CSV / Google Sheets Sheets """
+
 import os
 import sys
 import time
 
 import gspread
 import pandas as pd
-from etherscan import Etherscan  # https://github.com/pcko1/etherscan-python
 from gspread_dataframe import set_with_dataframe
 from sgqlc.endpoint.http import HTTPEndpoint
 
 import format_data
 import queries
 import utils
-
-
-def get_subgraph_block(etherscan_api_key: str, endpoint: HTTPEndpoint) -> int:
-    # Get block number for latest subgraph synced block, compare with Etherscan live block (if API key provided)
-    # Also tests if subgraph url is working
-    try:
-        block = int(
-            endpoint(queries.all_queries["lastSyncedBlock"])["data"]["_meta"]["block"][
-                "number"
-            ]
-        )
-        print(f"Subgraph block: {block}")
-    except TypeError:
-        msg = endpoint(queries.all_queries["lastSyncedBlock"])
-        print(msg["errors"][0]["message"])
-        sys.exit()
-
-    if etherscan_api_key:
-        try:
-            eth = Etherscan(etherscan_api_key)
-            etherscan_block = int(
-                eth.get_block_number_by_timestamp(
-                    timestamp=round(time.time()), closest="before"
-                )
-            )
-            print(f"Etherscan block: {etherscan_block}")
-            print(
-                f"Importing data based on subgraph block: {block}, which is {etherscan_block - block} blocks behind live block."
-            )
-
-            if etherscan_block - block >= 100:
-                print(
-                    f"Warning: Live (Etherscan) block is {etherscan_block - block} blocks ahead of subgraph block. Data may be incomplete."
-                )
-
-        except Exception:
-            print(
-                "Used Etherscan API key, but it's invalid or not working. Continuing."
-            )
-            print(f"Importing data based on subgraph block: {block}")
-
-        return block
 
 
 def main():
@@ -76,7 +36,7 @@ def main():
         print(f"Using custom block: {CUSTOM_BLOCK}")
         block = CUSTOM_BLOCK
     else:
-        block = get_subgraph_block(etherscan_api_key, endpoint)
+        block = utils.get_subgraph_block(etherscan_api_key, endpoint)
 
     # Time to query!
     all_results = {}
@@ -88,7 +48,8 @@ def main():
 
         # Choose how to paginate
         if query_name == "tokenBalances":
-            # tokenBalances has one single entry that causes a graphql error, so paginate differently
+            # tokenBalances has one single entry that causes a graphql error
+            # So we paginate differently
             # TODO: better algo for this (query 1000, 100, 10, 1 at a time?)
             first = 1
             skip = 0
@@ -160,17 +121,22 @@ def main():
         # Export to google sheets
         if EXPORT_GSHEETS:
             # Access google sheet
-            gc = gspread.service_account_from_dict(gsheet_credentials)
-            sh = gc.open_by_key(gsheet_file)
+            gsheet_service_account = gspread.service_account_from_dict(
+                gsheet_credentials
+            )
+            gsheet_sheet = gsheet_service_account.open_by_key(gsheet_file)
 
             try:
-                sh.worksheet(result).clear()
+                gsheet_sheet.worksheet(result).clear()
             except gspread.exceptions.WorksheetNotFound:
                 print(f"No existing worksheet found for {result}. Creating new one.")
-                r, c = result_value.shape  # get num of rows and columns from dataframe
-                sh.add_worksheet(title=result, rows=r, cols=c)
+                (
+                    rows,
+                    columns,
+                ) = result_value.shape  # get num of rows and columns from dataframe
+                gsheet_sheet.add_worksheet(title=result, rows=rows, cols=columns)
 
-            set_with_dataframe(sh.worksheet(result), result_value)
+            set_with_dataframe(gsheet_sheet.worksheet(result), result_value)
             print(f"Imported {result} to Google Sheets")
             time.sleep(0.5)  # Sleep to avoid hitting rate limit
 

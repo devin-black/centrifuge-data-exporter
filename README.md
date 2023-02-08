@@ -45,19 +45,22 @@ You will need the following tools to run this script:
     `pip install -r requirements.txt`
 
 
-6. Run the script!
+6. Run the script
 
     `python3 main.py`
 
-## Custom Settings
+## Settings
 
-You can define a few custom settings. This is optional. If no .env file is provided, the program will use default endpoints and export CSV files.
+You can define a few custom settings. This is optional. Without env vars or a .env file, the program will default to only exporting CSVs.
 
-First, create a copy of .env.example and rename it to .env. This file will store your custom settings. 
+Create a copy of .env.example and rename it to .env. Then, fill in the values:
 
-In your .env settings, you can:
-- Specify if you want to export to CSVs or to **Google Sheets**. If you want to export to Google sheets, you will need to place an auth JSON file in the program's directory and specify the Google Sheet ID. [Follow these directions to set up Google Sheets](https://docs.gspread.org/en/v5.7.0/oauth2.html).
+- If you want to export to Google sheets, you will need to put into the env vars the sheet file path as well as your authentication credentials from the auth.json file Google provides. [Follow these directions to set up Google Sheets](https://docs.gspread.org/en/v5.7.0/oauth2.html).
 - Specify an [Etherscan API key](https://etherscan.io/myapikey), so the program can tell you if the subgraph is synced up with the last block on Ethereum and warn you if it's >100 blocks behind.
+
+If no env vars or .env file is provided, the program will use default endpoints and export only CSV files.
+It will also not ping Etherscan to get the current block to compare with the subgraph's current block
+(This is not necessary, but can be useful to know if the subgraph is synced up with the last block on Ethereum.)
 
 ## Current issues / todo
 - **These queries max out at 5k results** due to Subgraph limits, even with pagination. Fix will either be expand Subgraph 5k limit or query by pool.

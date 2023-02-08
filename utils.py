@@ -1,7 +1,13 @@
 """Utility functions"""
 import os
+import sys
+import time
 
 from dotenv import load_dotenv
+from etherscan import Etherscan  # https://github.com/pcko1/etherscan-python
+from sgqlc.endpoint.http import HTTPEndpoint
+
+import queries
 
 
 def load_env_vars():
@@ -65,3 +71,45 @@ def load_env_vars():
                 gsheet_credentials = False
                 gsheet_file = False
                 return etherscan_api_key, gsheet_credentials, gsheet_file
+
+
+def get_subgraph_block(etherscan_api_key: str, endpoint: HTTPEndpoint) -> int:
+    """Get block number for latest subgraph synced block,
+    compare with Etherscan live block (if API key provided)"""
+    try:
+        block = int(
+            endpoint(queries.all_queries["lastSyncedBlock"])["data"]["_meta"]["block"][
+                "number"
+            ]
+        )
+        print(f"Subgraph block: {block}")
+    except TypeError:
+        msg = endpoint(queries.all_queries["lastSyncedBlock"])
+        print(msg["errors"][0]["message"])
+        sys.exit()
+
+    if etherscan_api_key:
+        try:
+            eth = Etherscan(etherscan_api_key)
+            etherscan_block = int(
+                eth.get_block_number_by_timestamp(
+                    timestamp=round(time.time()), closest="before"
+                )
+            )
+            print(f"Etherscan block: {etherscan_block}")
+            print(
+                f"Importing data based on subgraph block: {block}, which is {etherscan_block - block} blocks behind live block."
+            )
+
+            if etherscan_block - block >= 100:
+                print(
+                    f"Warning: Live (Etherscan) block is {etherscan_block - block} blocks ahead of subgraph block. Data may be incomplete."
+                )
+
+        except Exception:
+            print(
+                "Used Etherscan API key, but it's invalid or not working. Continuing."
+            )
+            print(f"Importing data based on subgraph block: {block}")
+
+        return block

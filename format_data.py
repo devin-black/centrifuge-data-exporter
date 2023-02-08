@@ -1,3 +1,6 @@
+"""Functions to format data from subgraph queries
+Makes the data prettier for easy reading in spreadsheets"""
+
 import os
 
 import pandas as pd
