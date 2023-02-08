@@ -1,81 +1,123 @@
-import time
+import logging
 import os
-import json
+import sys
+import time
 
 import gspread
 import pandas as pd
+from dotenv import load_dotenv
+from etherscan import Etherscan  # https://github.com/pcko1/etherscan-python
 from gspread_dataframe import set_with_dataframe
 from sgqlc.endpoint.http import HTTPEndpoint
-import traceback
-from dotenv import load_dotenv
-from etherscan import Etherscan #https://github.com/pcko1/etherscan-python
 
+import format_data
 import queries
-import format
 
-def main():
-    start = time.time()
+logging.basicConfig(level=logging.INFO)
 
-    #Load environment settings
-    try:
+
+def load_env_vars() -> str:
+    etherscan_api_key = os.environ.get("ETHERSCAN_API_KEY")
+    gsheets_auth_path = os.environ.get(
+        "GSHEETS_AUTH_PATH"
+    )  # TODO can whole auth be passed as env var?
+    gsheets_file = os.environ.get("GSHEETS_FILE")
+
+    if not all([etherscan_api_key, gsheets_auth_path, gsheets_file]):
+        logging.info("No OS environment variables found. Trying with .env file")
         load_dotenv()
-        graph_url = os.getenv('SUBGRAPH_URL')
-        etherscan_api_key = os.getenv('ETHERSCAN_API_KEY')
-        gsheets_auth_path = os.getenv('GSHEETS_AUTH_PATH')
-        gsheets_file = os.getenv('GSHEETS_FILE')
-        
-        #Unfortunately hacky way of converting ENV file bools (strings) to proper bools
-        export_csv = json.loads(os.getenv('EXPORT_CSV').lower())
-        export_gsheets = json.loads(os.getenv('EXPORT_GSHEETS').lower())
-        test = json.loads(os.getenv('TEST').lower())
-        use_custom_block = json.loads(os.getenv('USE_CUSTOM_BLOCK').lower())
-        if use_custom_block:
-            custom_block = int(os.getenv('CUSTOM_BLOCK'))
-    except Exception as e:
-        print(f"No valid .env file — using default settings.")
-        graph_url = "https://api.thegraph.com/subgraphs/name/centrifuge/tinlake"
+        etherscan_api_key = os.environ.get("ETHERSCAN_API_KEY")
+        gsheets_auth_path = os.environ.get("GSHEETS_AUTH_PATH")
+        gsheets_file = os.environ.get("GSHEETS_FILE")
+
+    if not all([etherscan_api_key, gsheets_auth_path, gsheets_file]):
+        logging.error("No valid .env file — using default settings.")
         etherscan_api_key = False
-        gsheets_auth_path = None
-        gsheets_file = None
-        export_csv = True
-        export_gsheets = False
-        test = True
-        use_custom_block = False
+        gsheets_auth_path = False
+        gsheets_file = False
 
-    endpoint = HTTPEndpoint(url=graph_url)
-    skip_limit = 5000 #Subgraph limits skip to 5000. TODO - can we get around this?
+    return etherscan_api_key, gsheets_auth_path, gsheets_file
 
-    #Get block number for latest subgraph synced block, compare with Etherscan live block (if API key provided)
-    block = int(endpoint(queries.last_synced_block_query)['data']['_meta']['block']['number'])
-    print(f"Subgraph block:  {block}")
+
+def get_subgraph_block(etherscan_api_key: str, endpoint: HTTPEndpoint) -> int:
+    # Get block number for latest subgraph synced block, compare with Etherscan live block (if API key provided)
+    # Also tests if subgraph url is working
+    try:
+        block = int(
+            endpoint(queries.all_queries["lastSyncedBlock"])["data"]["_meta"]["block"][
+                "number"
+            ]
+        )
+        msg = f"Subgraph block: {block}"
+        logging.info(msg)
+    except TypeError:
+        msg = endpoint(queries.all_queries["lastSyncedBlock"])
+        msg = msg["errors"][0]["message"]
+        logging.error(msg)
+        sys.exit()
 
     if etherscan_api_key:
         try:
             eth = Etherscan(etherscan_api_key)
-            etherscan_block = int(eth.get_block_number_by_timestamp(timestamp=round(time.time()), closest="before"))
+            etherscan_block = int(
+                eth.get_block_number_by_timestamp(
+                    timestamp=round(time.time()), closest="before"
+                )
+            )
             print(f"Etherscan block: {etherscan_block}")
-            print(f"Importing data based on subgraph block: {block}, which is {etherscan_block - block} blocks behind live block.")
-            
-            if etherscan_block - block >= 100:
-                print(f"Warning: Live (Etherscan) block is {etherscan_block - block} blocks ahead of subgraph block. Data may be incomplete.")
+            print(
+                f"Importing data based on subgraph block: {block}, which is {etherscan_block - block} blocks behind live block."
+            )
 
-        except Exception as e:
-                print(f"Warning: used Etherscan API key, but it's invalid or not working: {e}")
-                print(f"Importing data based on subgraph block: {block}")
-    
-    #Time to query!
+            if etherscan_block - block >= 100:
+                print(
+                    f"Warning: Live (Etherscan) block is {etherscan_block - block} blocks ahead of subgraph block. Data may be incomplete."
+                )
+
+        except Exception:
+            print(
+                "Used Etherscan API key, but it's invalid or not working. Continuing."
+            )
+            print(f"Importing data based on subgraph block: {block}")
+
+        return block
+
+
+def main():
+    """Main function to get data, format it, and export it to CSV / Sheets"""
+    # Settings
+    EXPORT_CSV = True
+    EXPORT_GSHEETS = True
+    USE_CUSTOM_BLOCK = False
+    CUSTOM_BLOCK = 0
+    TEST = True
+    GRAPH_URL = "https://graph.centrifuge.io/tinlake"
+    SKIP_LIMIT = 5000  # Subgraph limits skip to 5000. TODO - can we get around this?
+
+    start = time.time()
+
+    endpoint = HTTPEndpoint(url=GRAPH_URL)
+
+    etherscan_api_key, gsheets_auth_path, gsheets_file = load_env_vars()
+
+    if USE_CUSTOM_BLOCK:
+        print(f"Using custom block: {CUSTOM_BLOCK}")
+        block = CUSTOM_BLOCK
+    else:
+        block = get_subgraph_block(etherscan_api_key, endpoint)
+
+    # Time to query!
     all_results = {}
-    iferrors = False
-    retries = 0
-  
-    for i in queries.all_queries:
-        query = queries.all_queries[i]
+
+    for key, value in queries.all_queries.items():
+        query_name = key
+        query = value
         result = pd.DataFrame()
 
-        #Choose how to paginate
-        if i == 'tokenBalances': 
-            #tokenBalances has one single entry that causes a graphql error, so paginate differently
-            #TODO: better algo for this (query 1000, 100, 10, 1 at a time?)
+        # Choose how to paginate
+        if query_name == "tokenBalances":
+            # tokenBalances has one single entry that causes a graphql error, so paginate differently
+            # TODO: better algo for this (query 1000, 100, 10, 1 at a time?)
             first = 1
             skip = 0
         else:
@@ -85,93 +127,83 @@ def main():
         while True:
             try:
                 if first == 1:
-                    print(f"Querying:   {i} #{skip}…", end="\r")
+                    print(f"Querying:   {query_name} #{skip}…", end="\r")
                 else:
-                    print(f"Querying:   {i} #{skip}–{skip + first}…", end="\r")
+                    print(f"Querying:   {query_name} #{skip}–{skip + first}…", end="\r")
 
-                if use_custom_block:
-                    result_raw = endpoint(query, {'block': custom_block, 'first': first, 'skip': skip})
-                else:
-                    result_raw = endpoint(query, {'block': block, 'first': first, 'skip': skip})
+                result_raw = endpoint(
+                    query, {"block": block, "first": first, "skip": skip}
+                )
 
-                if i == 'loans': #Workaround for loans query — faster to pull via pools
-                    #result_temp = pd.DataFrame(result_raw['data'])
-                    result_temp = pd.DataFrame(result_raw['data']['pools'][0]['loans'])
+                # Workaround for loans query — faster to pull via pools
+                if query_name == "loans":
+                    result_temp = pd.DataFrame(result_raw["data"]["pools"][0]["loans"])
                 else:
-                    result_temp = pd.DataFrame(result_raw['data'][i])
-            
-            except Exception as e:
-                if i == 'tokenBalances': #Catches poisoned entries in tokenBalances
-                    print(f"tokenBalances bad data — skipping!")
-                else:
-                    print(f"Error: {e}") 
-                    iferrors = True
+                    result_temp = pd.DataFrame(result_raw["data"][query_name])
 
-            if result_temp.empty or skip >= skip_limit: #Done fetching results
+            except Exception as exception:
+                # Catches poisoned entries in tokenBalances and skips
+                if query_name == "tokenBalances":
+                    print("tokenBalances bad data — skipping!")
+                else:
+                    print(f"Query Error: {exception}")
+                    sys.exit()
+
+            # Add fetched paginated data to full result and increment skip
+            result = pd.concat([result, result_temp], axis=0, join="outer")
+            if skip < SKIP_LIMIT:
+                skip += first
+
+            # See if we are done fetching results
+            if result_temp.empty or skip >= SKIP_LIMIT:
                 print("                                              ", end="\r")
-                print(f"Querying:   {i} — Done.", end="\r")
-                break 
-            else: #Add fetched paginated data to full result and increment skip
-                result = pd.concat([result, result_temp], axis=0, join='outer')
-                if skip < skip_limit:
-                    skip += first
+                print(f"Querying:   {query_name} — Done.", end="\r")
+                break
 
-        #Format
-        try:
-            result = format.formatter(result, i)
-            print(f"\rQuerying:   {i} — Done. Formatting successful.")
-        except Exception as e:
-            traceback.print_exc()
-            print("Error: Formatting failed.")
-            iferrors = True
+        # Format results and add to all_results dict
+        result = format_data.formatter(result, query_name)
+        msg = f"\rQuerying:   {query_name} — Done. Formatting successful."
+        logging.info(msg)
 
-        all_results[i] = result
+        all_results[query_name] = result
 
-    #Test data for potential issues
-    if test:
-        #Test if pagination needed
-        for result in all_results:
-            if (len(all_results[result]) % 1000) == 0 and len(all_results[result]) > 0:
-                print(f"Warning: {result} may need pagination improvements. Returns exactly {len(all_results[result])} rows.")
+    for result, result_value in all_results.items():
+        # Test data for potential issues
+        if TEST:
+            # Test if pagination needed
+            if (len(result_value) % 1000) == 0 and len(result_value) > 0:
+                print(
+                    f"Warning: {result} may need pagination improvements. Returns exactly {len(result_value)} rows."
+                )
 
-        #Test for blank dataframes
-        for result in all_results:
-            if all_results[result].empty:
+            # Test for blank dataframes
+            if result_value.empty:
                 print(f"Warning: {result} is empty. Import error?")
 
-    #Save as CSV
-    if export_csv:
-        if not os.path.exists('results'):
-            os.mkdir('results')
-        for result in all_results:
-            all_results[result].to_csv(f'results/{result}.csv')
-        
-        print("CSV export complete.")
+        # Save as CSV
+        if EXPORT_CSV:
+            if not os.path.exists("results"):
+                os.mkdir("results")
+            result_value.to_csv(f"results/{result}.csv")
 
-    #Export to google sheets
-    if export_gsheets:
-        #Access google sheet
-        gc = gspread.service_account(filename = gsheets_auth_path)
-        sh = gc.open_by_key(gsheets_file)
+        # Export to google sheets
+        if EXPORT_GSHEETS:
+            # Access google sheet
+            gc = gspread.service_account(
+                filename=gsheets_auth_path
+            )  # TODO use env var instead of json?
+            sh = gc.open_by_key(gsheets_file)
 
-        for result in all_results:
             try:
                 sh.worksheet(result).clear()
-            except:
+            except gspread.exceptions.WorksheetNotFound:
                 print(f"No existing worksheet found for {result}. Creating new one.")
-                r, c = all_results[result].shape #get num of rows and columns from dataframe
-                sh.add_worksheet(title = result, rows = r, cols = c)
+                r, c = result_value.shape  # get num of rows and columns from dataframe
+                sh.add_worksheet(title=result, rows=r, cols=c)
 
-            #Temp-ish fix to not break existing formulas in existing sheets
-            #Append two empty columns to left side of dataframe X
-            if result != 'poolInvestors':
-                all_results[result] = pd.concat([pd.DataFrame(columns=['','']), all_results[result]], axis=1, join='outer')
-            
-            set_with_dataframe(sh.worksheet(result), all_results[result])
+            set_with_dataframe(sh.worksheet(result), result_value)
             print(f"Imported {result} to Google Sheets")
-            time.sleep(0.5) # Sleep to avoid hitting rate limit
-
-        print("Google Sheets export complete.")
+            time.sleep(0.5)  # Sleep to avoid hitting rate limit
 
     end = time.time()
     elapsed = end - start
@@ -181,10 +213,8 @@ def main():
     else:
         print(f"Complete. Time elapsed: {round(elapsed, 1)} seconds.")
 
-    if iferrors:
-        print("There were errors. Check logs. Data may be incomplete.")
-    
-    exit(0)
+    sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

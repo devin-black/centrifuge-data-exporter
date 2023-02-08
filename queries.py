@@ -1,19 +1,18 @@
-#Dict of queries used to import data from the subgraph.
-#Tinlake subgraph schema can be found here: https://github.com/centrifuge/tinlake-subgraph/blob/main/schema.graphql
-#Can likely automate this, but hardcoded queries help to avoid breaking data imports if subgraph is updated
-
-last_synced_block_query = '''
-{
-  _meta {
-  	block {
-      number
-  	}
-  }
-}
-'''
+# Dict of queries used to import data from the subgraph.
+# Tinlake subgraph schema can be found here: https://github.com/centrifuge/tinlake-subgraph/blob/main/schema.graphql
+# Can likely automate this, but hardcoded queries help to avoid breaking data imports if subgraph is updated
 
 all_queries = {
-'pools': '''
+    "lastSyncedBlock": """
+  {
+    _meta {
+      block {
+        number
+      }
+    }
+  }
+    """,
+    "pools": """
 query ($block: Int!, $first: Int!, $skip: Int!)
 {
   pools(first: $first, skip: $skip, block:{number: $block})
@@ -43,9 +42,8 @@ query ($block: Int!, $first: Int!, $skip: Int!)
     version
   }
 }
-''',
-
-'dailyPoolDatas': '''
+""",
+    "dailyPoolDatas": """
 query ($block: Int!, $first: Int!, $skip: Int!)
 {
   dailyPoolDatas(first: $first, skip: $skip)
@@ -70,9 +68,8 @@ query ($block: Int!, $first: Int!, $skip: Int!)
     seniorYield90Days
   }
 }
-''',
-
-'loans': '''
+""",
+    "loans": """
 query ($block: Int!, $first: Int!, $skip: Int!)
 {
   pools
@@ -103,9 +100,8 @@ query ($block: Int!, $first: Int!, $skip: Int!)
     }
   }
 }
-''',
-
-'erc20Transfers': '''
+""",
+    "erc20Transfers": """
 query ($block: Int!, $first: Int!, $skip: Int!)
 {
     erc20Transfers(first: $first, skip: $skip, block:{number: $block})
@@ -123,9 +119,8 @@ query ($block: Int!, $first: Int!, $skip: Int!)
         }
     }
 }
-''',
-
-'tokens': '''
+""",
+    "tokens": """
 query ($block: Int!, $first: Int!, $skip: Int!)
 {
     tokens(first: $first, skip: $skip, block:{number: $block})
@@ -135,10 +130,9 @@ query ($block: Int!, $first: Int!, $skip: Int!)
         price
     }
 }
-''',
-
-#TODO probably fix this as some stuff was changed here
-'rewardDayTotals': ''' 
+""",
+    # TODO probably fix this as some stuff was changed here
+    "rewardDayTotals": """
 query ($block: Int!, $first: Int!, $skip: Int!)
 {
   rewardDayTotals(first: $first, skip: $skip, block:{number: $block})
@@ -154,9 +148,8 @@ query ($block: Int!, $first: Int!, $skip: Int!)
     toDateAORewardAggregateValue
   }
 }
-''',
-
-'aorewardBalances': '''
+""",
+    "aorewardBalances": """
 query ($block: Int!, $first: Int!, $skip: Int!)
 {
   aorewardBalances(first: $first, skip: $skip, block:{number: $block})
@@ -166,9 +159,8 @@ query ($block: Int!, $first: Int!, $skip: Int!)
     totalRewards
   }
 }
-''',
-
-'rewardLinks': '''
+""",
+    "rewardLinks": """
 query ($block: Int!, $first: Int!, $skip: Int!)
 {
   rewardLinks(first: $first, skip: $skip, block:{number: $block})
@@ -179,9 +171,8 @@ query ($block: Int!, $first: Int!, $skip: Int!)
     rewardsAccumulated
   }
 }
-''',
-
-'poolInvestors': '''
+""",
+    "poolInvestors": """
     query ($block: Int!, $first: Int!, $skip: Int!)
     {
       poolInvestors(first: $first, skip: $skip, block:{number: $block})
@@ -190,11 +181,10 @@ query ($block: Int!, $first: Int!, $skip: Int!)
         accounts
       }
     }
-    ''',
-
-#TODO: Add in logic to paginate through tokenBalance
-#Buggy data causes query of 1000 to fail. Start with 100.
-'tokenBalances': '''
+    """,
+    # TODO: Add in logic to paginate through tokenBalance
+    # Buggy data causes query of 1000 to fail. Start with 100.
+    "tokenBalances": """
   query ($block: Int!, $first: Int!, $skip: Int!)
   {
     tokenBalances(first: $first, skip: $skip, block:{number: $block})
@@ -217,9 +207,8 @@ query ($block: Int!, $first: Int!, $skip: Int!)
       redeemAmount
     }
   }
-  ''',
-
-  'dailyInvestorTokenBalances': '''
+  """,
+    "dailyInvestorTokenBalances": """
     query ($block: Int!, $first: Int!, $skip: Int!)  
     {
       dailyInvestorTokenBalances(first: $first, skip: $skip)
@@ -244,6 +233,5 @@ query ($block: Int!, $first: Int!, $skip: Int!)
         juniorPendingSupplyCurrency
       }
     }
-    ''',
-
+    """,
 }
