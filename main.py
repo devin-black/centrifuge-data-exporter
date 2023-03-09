@@ -18,17 +18,23 @@ import utils
 def main():
     """Main function to get data, format it, and export it to CSV / Sheets"""
     # Settings
+    # TODO - make these command line vars?
     EXPORT_CSV = True
     EXPORT_GSHEETS = True
-    USE_CUSTOM_BLOCK = False  # TODO - make command line vars?
-    CUSTOM_BLOCK = 0
-    TEST = True
+    USE_CUSTOM_BLOCK = False
+    CUSTOM_BLOCK = 16593567
+    CHECK_RESULTS = True
     GRAPH_URL = "https://graph.centrifuge.io/tinlake"
+
     SKIP_LIMIT = 5000  # Subgraph limits skip to 5000. TODO - can we get around this?
 
     start = time.time()
 
-    endpoint = HTTPEndpoint(url=GRAPH_URL)
+    # Cloudflare doesn't like this script unless we spoof a user agent
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36"
+    }
+    endpoint = HTTPEndpoint(GRAPH_URL, headers)
 
     etherscan_api_key, gsheet_credentials, gsheet_file = utils.load_env_vars()
 
@@ -44,6 +50,11 @@ def main():
     for key, value in queries.all_queries.items():
         query_name = key
         query = value
+
+        # Skip lastSyncedBlock query from this list
+        if query_name == "lastSyncedBlock":
+            continue
+
         result = pd.DataFrame()
 
         # Choose how to paginate
@@ -51,6 +62,8 @@ def main():
             # tokenBalances has one single entry that causes a graphql error
             # So we paginate differently
             # TODO: better algo for this (query 1000, 100, 10, 1 at a time?)
+            # Uncomment continue to skip this query for easier testing b/c it takes a while
+            #  continue
             first = 1
             skip = 0
         else:
@@ -74,12 +87,12 @@ def main():
                 else:
                     result_temp = pd.DataFrame(result_raw["data"][query_name])
 
-            except Exception as exception:
+            except Exception:
                 # Catches poisoned entries in tokenBalances and skips
                 if query_name == "tokenBalances":
                     print("tokenBalances bad data — skipping!")
                 else:
-                    print(f"Query Error: {exception}")
+                    print(f"Query Error: {result_raw}")
                     sys.exit()
 
             # Add fetched paginated data to full result and increment skip
@@ -101,7 +114,7 @@ def main():
 
     for result, result_value in all_results.items():
         # Test data for potential issues
-        if TEST:
+        if CHECK_RESULTS:
             # Test if pagination needed
             if (len(result_value) % 1000) == 0 and len(result_value) > 0:
                 print(

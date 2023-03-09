@@ -7,14 +7,14 @@ Can likely automate this, but hardcoded queries avoid unexpected breaks if subgr
 
 all_queries = {
     "lastSyncedBlock": """
-  {
-    _meta {
-      block {
-        number
-      }
+{
+  _meta {
+    block {
+      number
     }
   }
-    """,
+}
+""",
     "pools": """
 query ($block: Int!, $first: Int!, $skip: Int!)
 {
@@ -141,14 +141,15 @@ query ($block: Int!, $first: Int!, $skip: Int!)
   rewardDayTotals(first: $first, skip: $skip, block:{number: $block})
   {
     id
-    todayValue
-    toDateAggregateValue
-    rewardRate
     aoRewardRate
-    todayReward
-    todayAOReward
-    toDateRewardAggregateValue
+    dropRewardRate
+    tinRewardRate
     toDateAORewardAggregateValue
+    toDateAggregateValue
+    toDateRewardAggregateValue
+    todayAOReward
+    todayReward
+    todayValue
   }
 }
 """,

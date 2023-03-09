@@ -1,29 +1,21 @@
 """Functions to format data from subgraph queries
-Makes the data prettier for easy reading in spreadsheets"""
-
-import os
+Makes the data more human readable for easy reading in spreadsheets"""
 
 import pandas as pd
 from dotenv import load_dotenv
 
-# Load settings
-load_dotenv()
-format_decimals = bool(os.getenv("FORMAT_DECIMALS"))
-
 # Functions that will format subgraph data (once in dataframe form)
 # Makes data more human readable.
 
-# Restore decimal places to columns in dataframe. Usually to 18 or 27 places for Tinlake.
-# Could automate this, but I like the specific control here.
-# Takes list of dataframe column names.
-
 
 def format_decimal(df, columns, places):
-    if format_decimals:
-        for column in columns:
-            df[column] = df[column].astype(float)
-            df[column] = df[column].apply(lambda x: x / 10**places)
-        return df
+    """Restore decimal places to columns in dataframe. Usually to 18 or 27 places for Tinlake.
+    Could automate this, but I like the specific control here.
+    Takes list of dataframe column names."""
+    for column in columns:
+        df[column] = df[column].astype(float)
+        df[column] = df[column].apply(lambda x: x / 10**places)
+    return df
 
 
 # Per-query data formatting logic
