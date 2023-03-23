@@ -48,6 +48,9 @@ You will need the following tools to run this script:
 6. Run the script
 
     `python3 main.py`
+    `python3 main.py -b 16593567 -t`
+
+Run with the "--help" argument to see all args
 
 ## Settings
 

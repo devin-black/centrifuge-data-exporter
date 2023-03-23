@@ -13,18 +13,22 @@ from sgqlc.endpoint.http import HTTPEndpoint
 import format_data
 import queries
 import utils
+import argparse
 
 
 def main():
     """Main function to get data, format it, and export it to CSV / Sheets"""
     # Settings
     # TODO - make these command line vars?
-    EXPORT_CSV = True
-    EXPORT_GSHEETS = True
-    USE_CUSTOM_BLOCK = False
-    CUSTOM_BLOCK = 16593567
-    CHECK_RESULTS = True
-    GRAPH_URL = "https://graph.centrifuge.io/tinlake"
+    
+    parser = argparse.ArgumentParser(description='Download human-readable data from Centrifuge Tinlake')
+    parser.add_argument('--csv', '-c', dest='EXPORT_CSV', default=True, help="Export data as CSV?")
+    parser.add_argument('--gsheets', '-g', dest="EXPORT_GSHEETS", default=True, help="Export data to gsheets. Note that this requires you to set up credentials, plz see .env.example for more info")
+    parser.add_argument('--block', '-b', dest='CUSTOM_BLOCK', default=None, type=int, help='Specify which block to read data from')
+    parser.add_argument('--check-results', '-r', dest="CHECK_RESULTS", default=True)
+    parser.add_argument('--graphurl', default="https://graph.centrifuge.io/tinlake", dest='GRAPH_URL')
+    parser.add_argument('--test', '-t', action='store_true', help="Skips tokenbalances query, which is slow, so helps with testing")
+    args = parser.parse_args()
 
     SKIP_LIMIT = 5000  # Subgraph limits skip to 5000. TODO - can we get around this?
 
@@ -34,13 +38,13 @@ def main():
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36"
     }
-    endpoint = HTTPEndpoint(GRAPH_URL, headers)
+    endpoint = HTTPEndpoint(args.GRAPH_URL, headers)
 
     etherscan_api_key, gsheet_credentials, gsheet_file = utils.load_env_vars()
 
-    if USE_CUSTOM_BLOCK:
-        print(f"Using custom block: {CUSTOM_BLOCK}")
-        block = CUSTOM_BLOCK
+    if args.CUSTOM_BLOCK != None:
+        print(f"Using custom block: {args.CUSTOM_BLOCK}")
+        block = args.CUSTOM_BLOCK
     else:
         block = utils.get_subgraph_block(etherscan_api_key, endpoint)
 
@@ -58,12 +62,10 @@ def main():
         result = pd.DataFrame()
 
         # Choose how to paginate
-        if query_name == "tokenBalances":
+        if ((query_name == "tokenBalances") and (args.test == False)):
             # tokenBalances has one single entry that causes a graphql error
             # So we paginate differently
             # TODO: better algo for this (query 1000, 100, 10, 1 at a time?)
-            # Uncomment continue to skip this query for easier testing b/c it takes a while
-            #  continue
             first = 1
             skip = 0
         else:
@@ -114,7 +116,7 @@ def main():
 
     for result, result_value in all_results.items():
         # Test data for potential issues
-        if CHECK_RESULTS:
+        if args.CHECK_RESULTS:
             # Test if pagination needed
             if (len(result_value) % 1000) == 0 and len(result_value) > 0:
                 print(
@@ -126,13 +128,13 @@ def main():
                 print(f"Warning: {result} is empty. Import error?")
 
         # Save as CSV
-        if EXPORT_CSV:
+        if args.EXPORT_CSV:
             if not os.path.exists("results"):
                 os.mkdir("results")
             result_value.to_csv(f"results/{result}.csv")
 
         # Export to google sheets
-        if EXPORT_GSHEETS:
+        if args.EXPORT_GSHEETS:
             # Access google sheet
             gsheet_service_account = gspread.service_account_from_dict(
                 gsheet_credentials
