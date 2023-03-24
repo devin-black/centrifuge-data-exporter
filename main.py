@@ -19,15 +19,37 @@ import argparse
 def main():
     """Main function to get data, format it, and export it to CSV / Sheets"""
     # Settings
-    # TODO - make these command line vars?
-    
-    parser = argparse.ArgumentParser(description='Download human-readable data from Centrifuge Tinlake')
-    parser.add_argument('--csv', '-c', dest='EXPORT_CSV', default=True, help="Export data as CSV?")
-    parser.add_argument('--gsheets', '-g', dest="EXPORT_GSHEETS", default=True, help="Export data to gsheets. Note that this requires you to set up credentials, plz see .env.example for more info")
-    parser.add_argument('--block', '-b', dest='CUSTOM_BLOCK', default=None, type=int, help='Specify which block to read data from')
-    parser.add_argument('--check-results', '-r', dest="CHECK_RESULTS", default=True)
-    parser.add_argument('--graphurl', default="https://graph.centrifuge.io/tinlake", dest='GRAPH_URL')
-    parser.add_argument('--test', '-t', action='store_true', help="Skips tokenbalances query, which is slow, so helps with testing")
+    parser = argparse.ArgumentParser(
+        description="Download human-readable data from Centrifuge Tinlake"
+    )
+    parser.add_argument(
+        "--csv", "-c", dest="EXPORT_CSV", default=True, help="Export data as CSV?"
+    )
+    parser.add_argument(
+        "--gsheets",
+        "-g",
+        dest="EXPORT_GSHEETS",
+        default=True,
+        help="Export data to gsheets. Note that this requires you to set up credentials, plz see .env.example for more info",
+    )
+    parser.add_argument(
+        "--block",
+        "-b",
+        dest="CUSTOM_BLOCK",
+        default=None,
+        type=int,
+        help="Specify which block to read data from",
+    )
+    parser.add_argument("--check-results", "-r", dest="CHECK_RESULTS", default=True)
+    parser.add_argument(
+        "--graphurl", default="https://graph.centrifuge.io/tinlake", dest="GRAPH_URL"
+    )
+    parser.add_argument(
+        "--test",
+        "-t",
+        action="store_true",
+        help="Skips tokenbalances query, which is slow, so helps with testing",
+    )
     args = parser.parse_args()
 
     SKIP_LIMIT = 5000  # Subgraph limits skip to 5000. TODO - can we get around this?
@@ -59,10 +81,14 @@ def main():
         if query_name == "lastSyncedBlock":
             continue
 
+        # Skip tokenBalances query if we're testing
+        if args.test == True and query_name == "tokenBalances":
+            continue
+
         result = pd.DataFrame()
 
         # Choose how to paginate
-        if ((query_name == "tokenBalances") and (args.test == False)):
+        if query_name == "tokenBalances":
             # tokenBalances has one single entry that causes a graphql error
             # So we paginate differently
             # TODO: better algo for this (query 1000, 100, 10, 1 at a time?)
