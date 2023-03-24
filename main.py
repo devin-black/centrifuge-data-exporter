@@ -4,6 +4,7 @@ to CSV / Google Sheets Sheets """
 import os
 import sys
 import time
+from datetime import datetime
 
 import gspread
 import pandas as pd
@@ -180,6 +181,11 @@ def main():
             set_with_dataframe(gsheet_sheet.worksheet(result), result_value)
             print(f"Imported {result} to Google Sheets")
             time.sleep(0.5)  # Sleep to avoid hitting rate limit
+
+    # Export time last updated to google sheets
+    if args.EXPORT_GSHEETS:
+        gsheet_sheet.worksheet("status").update_acell("B1", str(datetime.now()))
+        print(f"Updated status sheet in Google Sheets")
 
     end = time.time()
     elapsed = end - start
