@@ -184,7 +184,9 @@ def main():
 
     # Export time last updated to google sheets
     if args.EXPORT_GSHEETS:
-        gsheet_sheet.worksheet("status").update_acell("B1", str(datetime.now()))
+        gsheet_sheet.worksheet("Status / Config").update_acell(
+            "B1", str(datetime.now())
+        )
         print(f"Updated status sheet in Google Sheets")
 
     end = time.time()
