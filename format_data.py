@@ -18,6 +18,12 @@ def format_decimal(df, columns, places):
     return df
 
 
+def format_timestamp(df, column):
+    """Converts timestamp to human readable date"""
+    df[column] = pd.to_datetime(df[column], unit="s")
+    return df
+
+
 # Per-query data formatting logic
 def formatter(df, query):
     if query == "pools":
@@ -65,6 +71,7 @@ def formatter(df, query):
         ]
         format_decimal(df, columns_18, 18)
         format_decimal(df, columns_27, 27)
+        format_timestamp(df, "day")
         df["day"] = [d.get("id") for d in df.day]
         df["pool"] = [d.get("id") for d in df.pool]
         return df
@@ -80,6 +87,10 @@ def formatter(df, query):
         columns_27 = ["interestRatePerSecond"]
         format_decimal(df, columns_18, 18)
         format_decimal(df, columns_27, 27)
+        format_timestamp(df, "opened")
+        format_timestamp(df, "closed")
+        format_timestamp(df, "maturityDate")
+        format_timestamp(df, "financingDate")
         df["pool"] = [d.get("id") for d in df.pool]
         return df
 
@@ -122,6 +133,7 @@ def formatter(df, query):
             "juniorPendingSupplyCurrency",
         ]
         format_decimal(df, columns_18, 18)
+        format_timestamp(df, "day")
         df["account"] = [d.get("id") for d in df.account]
         df["day"] = [d.get("id") for d in df.day]
         df["pool"] = [d.get("id") for d in df.pool]
@@ -137,11 +149,13 @@ def formatter(df, query):
             "todayValue",
         ]
         format_decimal(df, columns_18, 18)
+        format_timestamp(df, "id")
         return df
 
     if query == "rewardBalances":
         columns_18 = ["linkableRewards", "totalRewards"]
         format_decimal(df, columns_18, 18)
+        format_timestamp(df, "timestamp")
         return df
 
     if query == "aorewardBalances":
