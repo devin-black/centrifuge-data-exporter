@@ -33,6 +33,8 @@ def load_env_vars():
                 "client_x509_cert_url": os.environ.get("CLIENT_X509_CERT_URL"),
             }
 
+            print(gsheet_credentials["type"])
+
             if any(
                 [
                     etherscan_api_key,
