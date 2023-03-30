@@ -17,7 +17,6 @@ def load_env_vars():
         if i == 0:
             etherscan_api_key = os.environ.get("ETHERSCAN_API_KEY")
             gsheet_file = os.environ.get("GSHEET_FILE")
-            type_test = os.environ.get("TYPE")
 
             gsheet_credentials = {
                 "type": os.environ.get("TYPE"),
@@ -33,8 +32,6 @@ def load_env_vars():
                 ),
                 "client_x509_cert_url": os.environ.get("CLIENT_X509_CERT_URL"),
             }
-
-            print(type_test)
 
             if any(
                 [

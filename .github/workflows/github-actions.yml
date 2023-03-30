@@ -23,11 +23,16 @@ jobs:
 
       - name: execute py script # run main.py
         env:
-          GSHEET_PROJECT_ID: ${{ secrets.GSHEET_PROJECT_ID }}
-          GSHEET_PRIVATE_KEY_ID: ${{ secrets.GSHEET_PRIVATE_KEY_ID }}
-          GSHEET_PRIVATE_KEY: $${{ secrets.GSHEET_PRIVATE_KEY }}
-          GSHEET_CLIENT_EMAIL: $${{ secrets.GSHEET_CLIENT_EMAIL }}
-          GSHEET_CLIENT_ID: $${{ secrets.GSHEET_CLIENT_ID }}
-          GSHEET_FILE: $${{ secrets.GSHEET_FILE }}
-          ETHERSCAN_API_KEY: $${{ secrets.ETHERSCAN_API_KEY }}
+          TYPE: ${{ secrets.TYPE}}
+          PROJECT_ID: ${{ secrets.PROJECT_ID }}
+          PRIVATE_KEY_ID: ${{ secrets.PRIVATE_KEY_ID }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          CLIENT_EMAIL: ${{ secrets.CLIENT_EMAIL }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          AUTH_URI: ${{ secrets.AUTH_URI }}
+          TOKEN_URI: ${{ secrets.TOKEN_URI }}
+          AUTH_PROVIDER_X509_CERT_URL: ${{ secrets.AUTH_PROVIDER_X509_CERT_URL }}
+          CLIENT_X509_CERT_URL: ${{ secrets.CLIENT_X509_CERT_URL }}
+          GSHEET_FILE: ${{ secrets.GSHEET_FILE }}
+          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
         run: python main.py
