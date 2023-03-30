@@ -95,7 +95,5 @@ This program accepts the following command line arguments:
     - `Proxy`
     - `PoolRegistry`
     - `GlobalAccountID`
-- For daily data results, format unix timestamps to be human readable.
-- Better error handling overall
 - Better `tokenBalances` algo
 - Implement Subquery to do the same for pools on Centrifuge Chain!

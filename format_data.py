@@ -2,10 +2,6 @@
 Makes the data more human readable for easy reading in spreadsheets"""
 
 import pandas as pd
-from dotenv import load_dotenv
-
-# Functions that will format subgraph data (once in dataframe form)
-# Makes data more human readable.
 
 
 def format_decimal(df, columns, places):
@@ -19,7 +15,7 @@ def format_decimal(df, columns, places):
 
 
 def format_timestamp(df, column):
-    """Converts timestamp to human readable date"""
+    """Convert timestamp to datetime."""
     df[column] = pd.to_datetime(df[column], unit="s")
     return df
 
@@ -71,9 +67,9 @@ def formatter(df, query):
         ]
         format_decimal(df, columns_18, 18)
         format_decimal(df, columns_27, 27)
-        format_timestamp(df, "day")
         df["day"] = [d.get("id") for d in df.day]
         df["pool"] = [d.get("id") for d in df.pool]
+        format_timestamp(df, "day")
         return df
 
     if query == "loans":
@@ -87,11 +83,11 @@ def formatter(df, query):
         columns_27 = ["interestRatePerSecond"]
         format_decimal(df, columns_18, 18)
         format_decimal(df, columns_27, 27)
+        df["pool"] = [d.get("id") for d in df.pool]
         format_timestamp(df, "opened")
         format_timestamp(df, "closed")
         format_timestamp(df, "maturityDate")
         format_timestamp(df, "financingDate")
-        df["pool"] = [d.get("id") for d in df.pool]
         return df
 
     if query == "erc20Transfers":
@@ -133,10 +129,10 @@ def formatter(df, query):
             "juniorPendingSupplyCurrency",
         ]
         format_decimal(df, columns_18, 18)
-        format_timestamp(df, "day")
         df["account"] = [d.get("id") for d in df.account]
         df["day"] = [d.get("id") for d in df.day]
         df["pool"] = [d.get("id") for d in df.pool]
+        format_timestamp(df, "day")
         return df
 
     if query == "rewardDayTotals":
