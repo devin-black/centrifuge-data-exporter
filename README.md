@@ -65,6 +65,23 @@ If no env vars or .env file is provided, the program will use default endpoints 
 It will also not ping Etherscan to get the current block to compare with the subgraph's current block
 (This is not necessary, but can be useful to know if the subgraph is synced up with the last block on Ethereum.)
 
+## Command Line Arguments
+
+This program accepts the following command line arguments:
+
+1. `--csv` or `-c`: (Optional) Export data as CSV? Set to `True` by default. To disable CSV export, use `--csv False`.
+
+2. `--gsheets` or `-g`: (Optional) Export data to gsheets. Set to `True` by default. Note that this requires you to set up credentials, please see `.env.example` for more information. To disable gsheets export, use `--gsheets False`.
+
+3. `--block` or `-b`: (Optional) Specify which block to read data from. Provide an integer value. Default is `None`, which will read data from the latest block.
+
+4. `--check-results` or `-r`: (Optional) Enable or disable result checking. Set to `True` by default. To disable result checking, use `--check-results False`.
+
+5. `--graphurl`: (Optional) Provide a custom URL for the Tinlake Graph API. Default is `https://graph.centrifuge.io/tinlake`.
+
+6. `--test` or `-t`: (Optional) Skips the tokenbalances query, which is slow, to help with testing. Use this flag without a value.
+
+
 ## Current issues / todo
 - **These queries max out at 5k results** due to Subgraph limits, even with pagination. Fix will either be expand Subgraph 5k limit or query by pool.
     - `dailyPoolDatas`,
