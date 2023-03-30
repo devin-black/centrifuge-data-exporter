@@ -83,10 +83,6 @@ This program accepts the following command line arguments:
 
 
 ## Current issues / todo
-- **These queries max out at 5k results** due to Subgraph limits, even with pagination. Fix will either be expand Subgraph 5k limit or query by pool.
-    - `dailyPoolDatas`,
-    - `erc20Transfers`
-    - `dailyInvestorTokenBalances`, 
 - Implement some of these as-of-yet unimplemented queries:
     - `rewardbyToken`
     - `account`

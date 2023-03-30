@@ -212,6 +212,11 @@ query ($block: Int!, $first: Int!, $skip: Int!)
     }
   }
   """,
+}
+
+# Unused queries:
+# dailyInvestorTokenBalances — dataset returned is huge, so not using for now
+'''
     "dailyInvestorTokenBalances": """
     query ($block: Int!, $first: Int!, $skip: Int!)  
     {
@@ -238,4 +243,4 @@ query ($block: Int!, $first: Int!, $skip: Int!)
       }
     }
     """,
-}
+'''

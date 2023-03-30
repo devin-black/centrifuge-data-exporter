@@ -53,7 +53,7 @@ def main():
     )
     args = parser.parse_args()
 
-    SKIP_LIMIT = 5000  # Subgraph limits skip to 5000. TODO - can we get around this?
+    SKIP_LIMIT = 10000000  # How much pagination before we stop
 
     start = time.time()
 
