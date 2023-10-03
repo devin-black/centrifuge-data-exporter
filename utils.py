@@ -9,6 +9,8 @@ from sgqlc.endpoint.http import HTTPEndpoint
 
 import queries
 
+# This comment updates github repo so actions work again!
+
 
 def load_env_vars():
     """Load environment variables from OS or .env file"""
