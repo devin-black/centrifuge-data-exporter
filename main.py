@@ -43,7 +43,9 @@ def main():
     )
     parser.add_argument("--check-results", "-r", dest="CHECK_RESULTS", default=True)
     parser.add_argument(
-        "--graphurl", default="https://graph.centrifuge.io/tinlake", dest="GRAPH_URL"
+        "--graphurl",
+        default="https://api.goldsky.com/api/public/project_clhi43ef5g4rw49zwftsvd2ks/subgraphs/main/1.0.2/gn",
+        dest="GRAPH_URL",
     )
     parser.add_argument(
         "--test",
@@ -100,6 +102,7 @@ def main():
             skip = 0
 
         while True:
+            time.sleep(0.5)  # Sleep to avoid hitting rate limit on graphql endpoint
             try:
                 if first == 1:
                     print(f"Querying:   {query_name} #{skip}…", end="\r")
