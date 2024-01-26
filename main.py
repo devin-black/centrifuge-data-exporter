@@ -18,7 +18,7 @@ import argparse
 
 
 def main():
-    """Main function to get data, format it, and export it to CSV / Sheets"""
+    """Main function to get data, format it, and export it to CSV/Sheets"""
     # Settings
     parser = argparse.ArgumentParser(
         description="Download human-readable data from Centrifuge Tinlake"
