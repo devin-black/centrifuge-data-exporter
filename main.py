@@ -16,7 +16,7 @@ import queries
 import utils
 import argparse
 
-# Adding this comment to restart github action  again
+# Adding this comment to restart github action again
 
 def main():
     """Main function to get data, format it, and export it to CSV/Sheets"""
