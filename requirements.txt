@@ -2,6 +2,6 @@ sgqlc==13.0
 gspread==3.7.0
 gspread_dataframe==3.2.1
 etherscan_python==2.1.0
-pandas==1.4.1
+pandas
 python-dotenv
 
